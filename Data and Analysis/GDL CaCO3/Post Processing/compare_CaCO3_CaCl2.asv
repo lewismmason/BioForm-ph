@@ -1,0 +1,11 @@
+% This script compares the calcium ion production of both CaCl2 and CaCO3
+
+wtpc = linspace(0,100,101);
+
+mm_CaCl2    = 110.98; % Molar mass of CaCl2
+mm_GDL      = 178.10; % Molar mass of GDL, limiting reactant in the CaCO3 rxn
+
+M_conc_CaCl2    = wtpc.*mm_CaCl2;
+M_conc_GDL      = wtpc.*mm_GDL;
+
+M_conc_Ca_CaCl2   = (302.5.*M_conc).^(1/3)

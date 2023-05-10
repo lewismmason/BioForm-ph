@@ -1,0 +1,1 @@
+These are outdated because they were under the assumption that H+ generation was linear with respect to sqrt(t), which is wrong

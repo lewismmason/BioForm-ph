@@ -1,0 +1,86 @@
+function [t_, pH_, i_CaCO3] = pre_process(dataset_names)
+% This function pre-processes the data to be put in a form for the big
+% linear system, or other more general purposes such as plotting. Note that
+% if i_CaCO3 is 0 that means there is no CaCO3 rxn, this is determined by
+% the naming convention of the file WHICH MUST BE AS FOLLOWS
+
+% file_names example:
+% datasets = [
+%     'GDL_01_0_CaCO3_0_0_tc_000';
+%     'GDL_01_0_CaCO3_0_1_tc_100';
+%     'GDL_01_0_CaCO3_0_5_tc_100';
+%     'GDL_01_0_CaCO3_1_0_tc_100';
+%     ];
+
+num_datasets = size(dataset_names);
+num_datasets = num_datasets(1);
+
+min_length = 1000000000000; % set very high
+
+% modify data and place into cell array
+for i=1:num_datasets
+    dataset_name = dataset_names(i,:);
+    X = readtable(dataset_name);
+    t = table2array(X(:,1))';      
+    pH = table2array(X(:,4))';
+
+%     plot(t, pH)
+%     hold on
+
+    fs = 1/(t(5)-t(4));
+    
+    % check second derivatives to get rxn start and CaCO3 times
+    dpHdt = gradient(pH,1/fs);
+    d2pHdt2 = gradient(dpHdt, 1/fs);
+    fpass = 1E-1;   % arbitrary
+    dpHdt_lp = lowpass(dpHdt, fpass, fs);
+    d2pHdt2_lp = lowpass(d2pHdt2, fpass, fs);
+
+    num_removed = 15;   % removes the first x values for finding max/mins (necessary since 0 counts as first value, so init peak)
+    [local_maxes, loc_max] = findpeaks(d2pHdt2_lp(num_removed:end));
+    [local_mins, loc_min] = findpeaks(-d2pHdt2_lp(num_removed:end)); % just use the negative since its zero centered
+    loc_max = loc_max + num_removed;
+    loc_min = loc_min + num_removed;
+
+    % k_max/k_min correspond to what element of local_maxes it is, then get
+    % loc_max with the same k for true index
+    [max_d2, k_max] = maxk(local_maxes, 2); 
+    [min_d2, k_min] = mink(local_mins, 2);
+    
+    i_max_d2 = loc_max(k_max);
+    i_min_d2 = loc_max(k_min);
+
+    i_rxn(i) = min(i_max_d2) %rxn start corresponds to lowest index min
+    i_CaCO3(i) = %CaCO3 start corresponds to largest index min
+
+    [~, i_rxn(i)] = min(dpHdt_lp);
+    if dataset_name(16) ~= '0' || dataset_name(18) ~= '0'
+        [~, i_CaCO3(i)] = max(dpHdt_lp);
+        i_CaCO3(i) = i_CaCO3(i) - i_rxn(i); % Remove the rxn index
+    else
+        i_CaCO3(i) = 0; % 0 is an edge case, ie does not exist for non CaCO3 experiments
+    end
+    
+    if length(pH(i_rxn(i):end)) < min_length
+        min_length = length(pH(i_rxn(i):end));
+    end
+
+    pH_cell{i,:} = pH(i_rxn(i):end);
+    t_cell{i,:} = t(i_rxn(i):end);
+end
+
+% Make all cell arrays have the same length
+for i=1:num_datasets
+    pH_cell_temp = pH_cell{i};
+    t_cell_temp = t_cell{i};
+    pH_(i,:) = pH_cell_temp(1:min_length);
+    t_(i,:) = t_cell_temp(1:min_length) - t_cell_temp(1);
+
+%     plot(t_(i,:), pH_(i,:))
+%     hold on
+%     grid on
+end
+
+
+
+end

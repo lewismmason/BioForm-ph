@@ -1,0 +1,1 @@
+These scripts are used to determine constants for GDL through experimentation.

@@ -1,0 +1,41 @@
+% L m/mol
+Lmm = 178.14;
+
+% Initial GDL mass in grams
+mL0  = [ 5.9949
+        5.0053
+        3.9974
+        2.9949
+        2.0014
+        1.0023];
+
+% in mL of water, or mass of water in grams
+H2Of    = [ 76
+            76
+            76
+            76
+            76
+            76]; % same for all samples
+H2Of = H2Of / 1000;
+
+L0 = mL0./H2Of/Lmm; % initial concentration in mol/L
+
+% Final pH taken from 'transient_data_descending_order.csv'
+pHf     = [ 2.13377
+            2.1603
+            2.2156
+            2.26644
+            2.34605
+            2.50905
+];
+
+K_W = 10^-14;
+
+Hf = 10.^(-pHf);
+Hfbar = Hf./L0;
+
+KAH = Hfbar.*(L0 .* Hfbar - sqrt(K_W))./(1 - Hfbar + sqrt(K_W)./L0);
+
+plot(L0./H2Of * 100, KAH)
+hold on
+grid on
